@@ -1,0 +1,150 @@
+﻿@using BQC.Models
+@using BQC.Enums
+@using BQC.Models.Checklist
+@using BQC.ViewModels
+@model BQC.Models.Checklist.SectionModel
+
+@{
+    ViewBag.Title = "Site Management";
+}
+
+<style>
+    .btn-tab {
+        border-bottom-left-radius: 0px;
+        border-bottom-right-radius: 0px;
+        min-height: 50px;
+        border-left: 1px solid var(--light-grey);
+        border-right: 1px solid var(--light-grey);
+    }
+
+    .grey-border-container {
+        border-top-left-radius: 0 !important;
+    }
+
+    .card-header, .checked {
+        background-color: #dbdbdb;
+    }
+
+    .status {
+        height: 15px;
+        width: 5px;
+        background-color: red;
+    }
+</style>
+
+@Html.Partial("~/Views/Shared/_BreadcrumbsAndSitePlotDropdown.cshtml", Model.SitePlotInfo)
+
+<div class="row mt-2 mb-lg-4 mb-2">
+    <div class="col-lg-7 col-12">
+        <h2>
+            @Model.SectionCategoryName
+        </h2>
+    </div>
+    <div class="col-lg-5 col-12">
+        <div class="float-lg-right float-left mt-lg-0 mt-2 mb-lg-0 mb-2">
+            @{
+                SectionDropdownViewModel sectionDropdownViewModel = new SectionDropdownViewModel()
+                {
+                    SitePlotInfo = Model.SitePlotInfo,
+                    SectionNamingInfo = Model.SectionNaming,
+                };
+                @Html.Partial("~/Views/Shared/_SectionDropdown.cshtml", sectionDropdownViewModel)
+            }
+        </div>
+
+    </div>
+</div>
+
+<div class="alert alert-success" id="saved-alert" style=" display: none">Data has been successfully saved</div>
+
+@if (ViewBag.SectionStatusEnum == (int)StatusOfSections.DependenciesIncomplete)
+{
+    @Html.Partial("~/Views/Shared/_ReadOnlyErrorDiv.cshtml", "The section is not ready to be completed.")
+}
+else
+{
+    <div class="mt-2" style=" position: relative; top: 1px;">
+        @for (int i = 0; i < Model.SubSectionInfoForButtons.Count(); i++)
+        {
+            <button id="btn-@Model.SubSectionInfoForButtons[i].SubSectionID" subsection="@Model.SubSectionInfoForButtons[i].SubSectionID" section="@Model.SubSectionInfoForButtons[i].SectionID" class="btn btn-tab btn-light">
+                @Model.SubSectionInfoForButtons[i].SubSectionButtonName
+            </button>
+
+            <script>
+            @if (Model.SubSectionInfoForButtons[i].SubSectionStatusForButtonState == (int)StatusOfSubSectionButtonState.Complete)
+            {
+                @:$("#btn-@Model.SubSectionInfoForButtons[i].SubSectionID").addClass('status-complete').prepend('<i class="fas fa-check pr-1 text-croudace-green"></i>');
+            }
+            else if (Model.SubSectionInfoForButtons[i].SubSectionStatusForButtonState == (int)StatusOfSubSectionButtonState.Incomplete)
+            {
+                @:$('#btn-@Model.SubSectionInfoForButtons[i].SubSectionID').addClass('status-incomplete').prepend('<i class="fas fa-times pr-2 text-dark-grey"></i>');
+            }
+            else if (Model.SubSectionInfoForButtons[i].SubSectionStatusForButtonState == (int)StatusOfSubSectionButtonState.AwaitingAmendmentFromStaff)
+            {
+                @:$('#btn-@Model.SubSectionInfoForButtons[i].SubSectionID').addClass('status-amendment-needed').prepend('<i class="fas fa-pencil-alt pr-2 text-dark-orange"></i>');
+            }
+            else if (Model.SubSectionInfoForButtons[i].SubSectionStatusForButtonState == (int)StatusOfSubSectionButtonState.AwaitingAmendmentFromWorker)
+            {
+                @:$('#btn-@Model.SubSectionInfoForButtons[i].SubSectionID').addClass('status-incomplete').prepend('<i class="fas fa-question pr-2 text-dark-grey"></i>');
+            }
+            </script>
+        }
+    </div>
+
+    <div id="partial-container"></div>
+}
+
+
+<script src="~/Scripts/initiate-scroll-to-top-btn.js"></script>
+<script src="~/Scripts/shared-scripts.js"></script>
+<script>
+    $('#btn-@Model.SubSectionIDToLoad').addClass('checked');
+
+    //render partial view into partial container
+    function renderPartialView(subSectionID) {
+        mainObject = {
+            PlotID: '@Model.SitePlotInfo.PlotInfo.PlotID',
+            SubSectionID: subSectionID,
+        }
+
+        $.ajax({
+            url: '@Url.Action("getSubSectionPartialView", "Checklist")',
+            type: 'post',
+            data: mainObject,
+            beforeSend: function() {
+                $('#loader').show();
+            },
+            success: function (result) {
+                $('#loader').hide();
+                $('#partial-container').empty();
+                $('#partial-container').html(result);
+            }
+        });
+    }
+
+    //preload partial view
+    $(document).ready(function () {
+        renderPartialView('@Model.SubSectionIDToLoad');
+    })
+
+    //repopulate the partial view container when a new subsection (tab) is clicked.
+    $('.btn-tab').click(function () {
+        $('.btn-tab').each(function () {
+            $(this).removeClass('checked');
+        })
+        $(this).addClass('checked');
+
+        var subSection = $(this).attr('subsection');
+        var section = $(this).attr('section');
+
+        renderPartialView(subSection);
+    })
+
+    $('#@Model.SectionIDToLoad').attr('selected', 'selected');
+
+    $('.breadcrumb').html(
+        '<li class="breadcrumb-item"> <a href="@Url.Action("ChooseSite","Sites")">Sites</a></li >' +
+        '<li class="breadcrumb-item"> <a href="@Url.Action("ChoosePlots","Plots", new { @SiteID = Model.SitePlotInfo.SiteInfo.EncryptedSiteID })">Plots</a></li >' +
+        '<li class="breadcrumb-item active"><a href="#">Checklist</a></li>'
+    );
+</script>

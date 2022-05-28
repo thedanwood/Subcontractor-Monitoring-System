@@ -1,0 +1,140 @@
+﻿@using BQC.Models
+@using BQC.Models.Checklist
+@using BQC.Enums
+@using BuildQualityChecklist.Models
+@model string
+
+@{
+    ViewBag.Title = "Choose Plot";
+}
+
+<style>
+    .dataTables_wrapper {
+        width: 100% !important;
+    }
+</style>
+
+@{
+    var decryptedSiteID = int.Parse(Utils.Decrypt(Model));
+
+    SiteAndPlotInformationModel sitePlotModel = new SiteAndPlotInformationModel()
+    {
+        SiteInfo = new SiteInformationModel() { SiteID = decryptedSiteID, EncryptedSiteID = Model },
+    };
+    @Html.Partial("~/Views/Shared/_BreadcrumbsAndSitePlotDropdown.cshtml", sitePlotModel)
+}
+
+<div class="default-margin">
+    <h1>Plot Selection</h1>
+    <p>
+        Click on a table row below to proceed to the checklist page.
+    </p>
+    <div class="grey-border-container">
+
+        @if (User.IsInRole("Tradecontractor"))
+        {
+            <div class="form-inline mb-4">
+                <label for="#role-name">Your Role</label>
+                <input class="form-control ml-3 " type="text" disabled="disabled" value="" />
+            </div>
+        }
+
+        <div class="key-div">
+            <div class="key-container">
+                <div class="key key-border-left-green"></div><span>All sections have been completed</span>
+            </div>
+            <div class="key-container">
+                <div class="key key-border-left-grey"></div><span>Not all sections have been completed</span>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <table id="plots" class="table table-hover">
+                    <thead>
+                        <tr style="background-color:#F9FAFB;">
+                            <th class="plot-number">Plot Number</th>
+                            <th>Total Build Sections Completed</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $('.plot-dropdown-container').hide();
+
+    function getColourCodingValue(status) {
+        if (status == @((int)StatusOfPlotsForWorker.AllComplete)){
+            return 'green-table-colour-coding';
+        } else if (status == @((int)StatusOfPlotsForWorker.NotAllComplete)) {
+            return 'grey-table-colour-coding';
+        }
+    }
+
+    $(document).ready(function () {
+        var table = $('#plots').DataTable({
+            ajax: {
+                url: '@Html.Raw(@Url.Action("GetPlotsForPlotSelectionTable", "Plots", new { SiteID = decryptedSiteID }))',
+                type: 'POST',
+                dataType: 'json',
+                contentType: 'application/json; charset=utf-8'
+            },
+            aLengthMenu: [
+                [10, 25, 50, 100, 200, -1],
+                [10, 25, 50, 100, 200, "All"]
+            ],
+            iDisplayLength: 10,
+            deferRender: 'true',
+            columns: [
+                {
+                    data: 'PlotNumber',
+                    //render: function (data) {
+                    //    if (parseInt(data) < 10) {
+                    //        data = '0' + data;
+                    //    }
+                    //    return data;
+                    //}
+                },
+                { data: 'BuildSectionsCompleted' },
+            ],
+            fnRowCallback: function (row, data, displayIndex) {
+                var colourCodingValue = getColourCodingValue(data.Status);
+                $(row).addClass(colourCodingValue);
+            },
+            order: [0, 'asc'],
+            bLengthChange: false,
+            responsive: true
+        });
+
+        $('#plots tbody').on('click', 'tr', function () {
+            @{ 
+                var actionName = "LoadChecklist";
+                if (User.IsInRole("Subcontractor"))
+                {
+                    actionName = "LoadTradeContractorSections";
+                }
+            }
+            var encryptedPlotID = table.row(this).data().EncryptedPlotID;
+            var link = '@Url.Action(actionName, "Checklist", new { plotId = "parameter_id", siteId = Utils.Encrypt(decryptedSiteID.ToString()) })';
+            link = link.replace("parameter_id", encryptedPlotID);
+            link = replaceAmpersands(link);
+            window.location.href = link;
+        });
+    });
+
+    //select site from dropdown that has been chosen
+    $('[siteid=' + '@decryptedSiteID]').attr('selected', 'selected');
+
+    $('.breadcrumb').html(
+        '<li class="breadcrumb-item"> <a href="@Url.Action("ChooseSite","Sites")">Sites</a></li >' +
+        '<li class="breadcrumb-item active"><a>Plots</a></li >' +
+        @if(User.IsInRole("Tradecontractor"))
+        {
+            @:'<li class="breadcrumb-item faded"><a href="#">Sections</a></li>'+
+        }
+        '<li class="breadcrumb-item faded"><a href="#">Checklist</a></li>'
+    );
+</script>

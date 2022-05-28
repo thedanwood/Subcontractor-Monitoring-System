@@ -1,0 +1,140 @@
+﻿@model BQC.Models.Checklist.QuestionResponseInfoViewModel
+@using BQC.Enums
+
+@*image zoom modal*@
+<div class="modal fade pr-0" id="image-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog" data-dismiss="modal">
+        <div class="modal-content">
+            <div class="modal-body">
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true"><h2>&times;</h2></span></button>
+
+                <img src="" class="image-preview" style="width: 100%;height:auto">
+                <hr />
+                <button data-dismiss="modal" class="btn btn-dark float-right">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="col-lg-3 col-12">
+    <button class="btn btn-outline-grey float-lg-right float-left collapsed" data-toggle="collapse" href="#audit-trail-@Model.QuestionAndResponseInfo.ChecklistQuestionID"><i class="fas fa-history pr-2"></i>Show full audit trail<span><i class="fa-arrow-flip"></i></span></button>
+</div>
+
+<div class="col-12 collapse" id="audit-trail-@Model.QuestionAndResponseInfo.ChecklistQuestionID" >
+    <div class=" audit-trail-container">
+        <small>Total Attempts:</small>
+        <b>
+            @Model.QuestionAndResponseInfo.QuestionAttemptCount
+        </b>
+        @foreach (var attempt in Model.QuestionAndResponseInfo.QuestionAttemptResponseInfo)
+        {
+            <button class="btn  btn-outline-grey see-attempt-audit-trail-btn collapsed" data-toggle="collapse" href="#attempt-@attempt.AttemptNumber-@Model.QuestionAndResponseInfo.ChecklistQuestionID">See attempt #@attempt.AttemptNumber <span><i class="fa-arrow-flip"></i></span></button>
+            <div id="attempt-@attempt.AttemptNumber-@Model.QuestionAndResponseInfo.ChecklistQuestionID" class="collapse col-12 attempt-container">
+                <ul class="attempt-responses-container">
+                    <li class="li-tick">
+                        Accepted by @attempt.AcceptorInfo.Name at @attempt.AcceptorInfo.SignedDateTime
+                        @if (attempt.AcceptorInfo.Comment != null)
+                        {
+                            @:with comment "@attempt.AcceptorInfo.Comment"
+                        }
+                        <br />
+                        @if (attempt.AcceptorInfo.AcceptorFilePaths != null)
+                        {
+                            if (attempt.AcceptorInfo.AcceptorFilePaths.Count() > 0)
+                            {
+                                <div class="mt-2 mb-2">
+                                    <button href="#acceptor-images-@attempt.AttemptNumber-@Model.QuestionAndResponseInfo.ChecklistQuestionID" class="collapsed see-acceptor-images-btn btn btn-outline-white" data-toggle="collapse">Click to see image(s) provided<span><i class="fa-arrow-flip"></i></span></button>
+                                    <div id="acceptor-images-@attempt.AttemptNumber-@Model.QuestionAndResponseInfo.ChecklistQuestionID" class="acceptor-images-container collapse">
+                                        <div class="row w-100 plr-1 m-0">
+                                            @foreach (var acceptorImage in attempt.AcceptorInfo.AcceptorFilePaths)
+                                            {
+                                                <div class="col-lg-4 col-md-6 col-12 plr-1">
+                                                    <img class="attempt-image" src="@acceptorImage" />
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </li>
+                    @if (Model.ChecklistPageOriginTypeEnum == (int)ChecklistPageOriginTypes.AcceptAndApprovalPage)
+                    {
+                        if (attempt.ApproverInfo.ApproverResponseEnum == (int)ApprovalResponseTypes.Reject)
+                        {
+                            <li class="li-rejected">
+
+                                @attempt.ApproverInfo.ApproverResponseString by staff at @attempt.ApproverInfo.SignedDateTime
+                                @if (attempt.ApproverInfo.Comment != null)
+                                {
+                                    @:with comment "@attempt.ApproverInfo.Comment"
+                                }
+                                <br />
+                                @if (attempt.ApproverInfo.ApproverFilePaths != null)
+                                {
+                                    if (attempt.ApproverInfo.ApproverFilePaths.Count() > 0)
+                                    {
+                                        <button href="#approver-images-@attempt.AttemptNumber-@Model.QuestionAndResponseInfo.ChecklistQuestionID" class="collapsed see-acceptor-images-btn btn btn-outline-white" data-toggle="collapse">Click to see image(s) provided<span><i class="fa-arrow-flip"></i></span></button>
+                                        <div id="approver-images-@attempt.AttemptNumber-@Model.QuestionAndResponseInfo.ChecklistQuestionID" class="acceptor-images-container collapse">
+                                            <div class="row w-100 plr-1 m-0">
+                                                @foreach (var approverImage in attempt.ApproverInfo.ApproverFilePaths)
+                                                {
+                                                    <div class="col-lg-4 col-md-6 col-12 plr-1">
+                                                        <img class="attempt-image" src="@approverImage" />
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                            </li>
+                        }
+                        else if (attempt.ApproverInfo.ApproverResponseEnum == (int)ApprovalResponseTypes.Approve || attempt.ApproverInfo.ApproverResponseEnum == (int)ApprovalResponseTypes.SubjectToConditions)
+                        {
+                            <li class="li-tick">
+
+                                @attempt.ApproverInfo.ApproverResponseString by staff at @attempt.ApproverInfo.SignedDateTime
+                                @if (attempt.ApproverInfo.Comment != null)
+                                {
+                                    @:with comment "@attempt.ApproverInfo.Comment"
+                                }
+                                <br />
+                                @if (attempt.ApproverInfo.ApproverFilePaths != null)
+                                {
+                                    if (attempt.ApproverInfo.ApproverFilePaths.Count() > 0)
+                                    {
+                                        <button href="#approver-images-@attempt.AttemptNumber-@Model.QuestionAndResponseInfo.ChecklistQuestionID" class="collapsed see-acceptor-images-btn btn btn-outline-grey" data-toggle="collapse">Click to see image(s) provided<span><i class="fa-arrow-flip"></i></span></button>
+                                        <div id="approver-images-@attempt.AttemptNumber-@Model.QuestionAndResponseInfo.ChecklistQuestionID" class="acceptor-images-container collapse">
+                                            <div class="row w-100 plr-1 m-0">
+                                                @foreach (var approverImage in attempt.ApproverInfo.ApproverFilePaths)
+                                                {
+                                                    <div class="col-lg-4 col-md-6 col-12 plr-1">
+                                                        <img class="attempt-image" src="@approverImage" />
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="li-not-responded">
+                                Decision has not been made by staff
+                            </li>
+                        }
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+</div>
+
+
+<script>
+    $('.attempt-image').click(function () {
+        $('.image-preview').attr('src', $(this).attr('src'));
+        $('#image-modal').modal('show');
+    });
+</script>

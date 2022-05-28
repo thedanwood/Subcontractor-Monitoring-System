@@ -1,0 +1,129 @@
+﻿@using BuildQualityChecklist.Enums
+
+<div id="popup-modal">
+</div>
+
+<div class="default-margin">
+    <h1>Edit Checklist Questions</h1>
+    <p>
+        Use the table below to edit checklist questions.
+    </p>
+    <div class="grey-border-container">
+
+        <button class="btn btn-green" id="add-new-question-btn">Add New Question</button>
+        <div id="update-question-success-alert"></div>
+        <div id="update-question-failure-alert"></div>
+
+        <div class="row col-12">
+            <div class="position-relative">
+                @Html.Partial("~/Views/Shared/_TableLoader.cshtml")
+                <table id="checklist-questions" class="table table-hover table-striped w-100 mt-4" style="cursor:pointer">
+                    <thead>
+                        <tr style="background-color:#F9FAFB;">
+                            <th>Question Number</th>
+                            <th>Question Text</th>
+                            <th class="actions">Actions</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    $(document).ready(function () {
+        var table = $('#checklist-questions').DataTable({
+            ajax: {
+                    url: '@Url.Action("getEditQuestionsInSubSection", "Admin", new { subSectionId = 2})',
+                    type: 'GET',
+                    dataType: 'json',
+                    contentType: 'application/json; charset=utf-8'
+                },
+                aLengthMenu: [
+                     [10, 25, 50, 100, 200, -1],
+                     [10, 25, 50, 100, 200, "All"]
+                ],
+                iDisplayLength: 10,
+                deferRender: 'true',
+                columns: [
+                    {
+                        data: 'BQCQuestionID'
+                    },
+                    {
+                        data: 'QuestionText',
+                        render: function (data, type, row) {
+                            if (data == null || data == "") {
+                                return "N/A";
+                            } else {
+                                return data;
+                            }
+                        }
+                    },
+                    {
+                        data: null,
+                        render: function (data, type, row) {
+                            return '<button class="btn btn-primary" onclick="editQuestion(' + row.QuestionID + ')">Edit</button>' +
+                                '<button class="btn btn-red" onclick="deleteQuestion(' + row.QuestionID + ')">Delete</button>';
+                        }
+                    }
+                ],
+                bLengthChange: false,
+                responsive: true
+        });
+    });
+
+    $('#add-new-question-btn').click(function () {
+        $(this).attr('disabled', 'disabled');
+        $('#popup-modal').load('@Url.Action("renderUpdateQuestionPartialView", "Admin", new { @updateType = (int)UpdateTypes.Add } })', function () { removeDisabledAttr('#add-new-question-btn') });
+    })
+    function removeDisabledAttr(selector) {
+        $(selector).removeAttr('disabled');
+    }
+
+    function editQuestion(questionId) {
+        var partialViewPath = '@Url.Action("renderUpdateQuestionPartialView", "Admin", new { @updateType = (int)UpdateTypes.Edit, @Id = "_id" })';
+        partialViewPath = partialViewPath.replace("_id", questionId);
+        $('#popup-modal').load(partialViewPath);
+    }
+
+    function deleteQuestion(questionId) {
+        Swal.fire({
+            title: "Are you sure?",
+            text: "Are you sure you want to delete this question?",
+            icon: "error",
+            buttonStyling: false,
+            showCancelButton: true,
+            confirmButtonText: "Confirm deletion",
+            cancelButtonText: "Cancel",
+            reverseButtons: true,
+            customClass: {
+                cancelButton: 'btn btn-dark p-3',
+                confirmButton: 'btn btn-red p-3',
+            },
+        }).then((result) => {
+
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '@Url.Action("deleteChecklistQuestions", "Admin")',
+                    type: 'post',
+                    data: { questionId: questionId },
+                    beforeSend: function () {
+                        $("#table-loader").show();
+                    },
+                    success: function (result) {
+                        $("#table-loader").hide();
+
+                        if (result.success) {
+                            showSuccessAlertOnTimer('#update-question-success-alert', 'Question has been successfully deleted');
+                            refreshjQueryDatatable('#checklist-questions');
+                        } else {
+                            showFailureAlertOnTimer('#update-question-failure-alert', 'An error occured while deleting the question. Please refresh the page using the F5 button and try again.');
+                        }
+                    }
+                });
+            }
+        });
+    }
+</script>

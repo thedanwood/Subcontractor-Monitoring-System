@@ -1,0 +1,40 @@
+﻿@using BQC.Models;
+@using BQC.Models.Checklist
+@model AddCommentsOrFilesModel
+
+<style>
+    textarea {
+        min-height: 150px;
+    }
+
+    .add-file-alert {
+        margin-bottom: 10px !important;
+    }
+</style>
+
+<div class="col-12">
+    <span class="error d-none mb-3 ml-3 text-danger" id="error-@Model.QuestionID"></span>
+    <div class="mt-2">
+        <button href="#collapse-@Model.QuestionID" type="button" id="collapse-btn-@Model.QuestionID" class="btn btn-outline-light-blue collapsed" data-toggle="collapse" role="button" aria-expanded="false" aria-controls="collapse-@Model.QuestionID">
+            Add Information<span class="fa-arrow-flip"></span>
+        </button>
+    </div>
+    <div id="collapse-@Model.QuestionID" class="collapse">
+        <form id="checklist-question-comment-form">
+            <textarea id="textarea-@Model.QuestionID" maxlength="200" minlength="2" class="form-control mw-100 add-information-textarea"></textarea>
+        </form>
+
+        <div id="add-file-forms-container-@Model.QuestionID">
+
+        </div>
+
+        <div id="file-upload-error-@Model.QuestionID" class="add-file-alert alert alert-red alert-hidden mb-2"></div>
+
+        <button class="btn btn-dark add-file" type="button" id="add-file-@Model.QuestionID" onclick="addFile(@Model.AcceptorOrApproverEnum, this, @Model.QuestionAttemptCountForNewFileSave)" question-id="@Model.QuestionID">Add another file</button>
+    </div>
+</div>
+
+<script src="~/Scripts/add-file-logic.js"></script>
+<script>
+    getAddFilePartialView('@Model.AcceptorOrApproverEnum', '@Model.QuestionID', @Model.QuestionAttemptCountForNewFileSave);
+</script>

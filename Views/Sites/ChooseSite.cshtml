@@ -1,0 +1,82 @@
+﻿@using BQC.Models
+@{
+    ViewBag.Title = "Choose Site";
+}
+
+<style>
+    .dataTables_wrapper {
+        width: 100% !important;
+    }
+</style>
+
+@Html.Partial("~/Views/Shared/_Breadcrumbs.cshtml")
+
+<div class="default-margin">
+    <h1>Site Selection</h1>
+    <p>
+        Click on a table row below to proceed to the plots selection screen
+    </p>
+    <div class="grey-border-container">
+        <div class="row">
+            <div class="col-12">
+                <table id="sites" class="table table-hover table-striped w-100" style="cursor:pointer">
+                    <thead>
+                        <tr style="background-color:#F9FAFB;">
+                            <th>Site Name</th>
+                            <th>Marketing Name</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        var table = $('#sites').DataTable({
+            ajax: {
+                    url: '@Url.Action("GetSites", "Sites")',
+                    type: 'GET',
+                    dataType: 'json',
+                    contentType: 'application/json; charset=utf-8'
+                },
+                aLengthMenu: [
+                     [10, 25, 50, 100, 200, -1],
+                     [10, 25, 50, 100, 200, "All"]
+                ],
+                iDisplayLength: 10,
+                deferRender: 'true',
+                columns: [
+                    {
+                        data: 'SiteName'
+                    },
+                    {
+                        data: 'MarketingName',
+                        render: function (data, type, row) {
+                            if (data == null || data == "") {
+                                return "N/A";
+                            } else {
+                                return data;
+                            }
+                        }
+                    }
+                ],
+                bLengthChange: false,
+                responsive: true
+        });
+
+        $('#sites tbody').on('click', 'tr', function () {
+            var siteId = table.row(this).data().EncryptedSiteID;
+            var url = '@Url.Action("ChoosePlots", "Plots", new { siteId = "siteid" })';
+            url = url.replace("siteid", siteId);
+            window.location.href = url;
+        });
+    });
+
+    $('.breadcrumb').html(
+        '<li class="breadcrumb-item active"><a>Sites</a></li >' +
+        '<li class="breadcrumb-item faded"><a href="#">Plots</a></li >' +
+        '<li class="breadcrumb-item faded"><a href="#">Checklist</a></li>'
+    );
+</script>

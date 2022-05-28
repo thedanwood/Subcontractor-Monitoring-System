@@ -1,0 +1,38 @@
+﻿@model BQC.ViewModels.SectionDropdownViewModel
+
+<div class="d-none">
+    <style type="text/css">
+        .section-selection-container {
+            display: grid;
+            grid-template-columns: 70px auto;
+        }
+        .section-selection-container label {
+            grid-column: 1/2;
+        }
+        .section-selection-container select {
+            grid-column: 2/3;
+        }
+    </style>
+</div>
+
+<div class="section-selection-container">
+    <label for="#section-selection" class="pr-2">Section: </label>
+    <select id="section-selection" class="form-control">
+        @foreach (var sectionInfo in Model.SectionNamingInfo)
+        {
+            <option id="@sectionInfo.SectionNumber">
+                @sectionInfo.SectionFullName
+            </option>
+        }
+    </select>
+</div>
+
+<script style="display:none!important;">
+    //change sectiion
+    $('#section-selection').change(function () {
+        var sectionID = $('#section-selection option:selected').attr('id');
+        var link = '@Url.Action("LoadChecklist", "Checklist", new { @sectionId = "_sectionID", @plotId = Model.SitePlotInfo.PlotInfo.EncryptedPlotID })';
+        link = link.replace("_sectionID", sectionID).replace(/&amp;/g, '&');
+        window.location.href = link;
+    })
+</script>

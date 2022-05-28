@@ -1,0 +1,59 @@
+﻿@model int
+@using BuildQualityChecklist.Enums
+
+<script>
+    function getColourCodingValue(status) {
+        if (status == @((int)StatusOfPlotsForWorker.AllComplete)){
+            return 'green-table-colour-coding';
+        } else if (status == @((int)StatusOfPlotsForWorker.NotAllComplete)) {
+            return 'grey-table-colour-coding';
+        }
+    }
+
+    $(document).ready(function () {
+        var table = $('#plots').DataTable({
+            ajax: {
+                url: '@Html.Raw(@Url.Action("GetPlotsForPlotSelectionTable", "Plots", new { @SiteID = Model }))',
+                type: 'POST',
+                dataType: 'json',
+                contentType: 'application/json; charset=utf-8'
+            },
+            aLengthMenu: [
+                [10, 25, 50, 100, 200, -1],
+                [10, 25, 50, 100, 200, "All"]
+            ],
+            iDisplayLength: 10,
+            deferRender: 'true',
+            columns: [
+                { data: 'PlotNo' },
+                { data: 'SectionsCompleted' },
+                { data: 'CurrentBuildSection' },
+            ],
+            columnDefs: [
+                {
+                    targets: 3,
+                    visible: false,
+                },
+                {
+                    targets: 4,
+                    visible: false,
+                },
+            ],
+            fnRowCallback: function (row, data, displayIndex) {
+                var colourCodingValue = getColourCodingValue(data.Status);
+                $(row).addClass(colourCodingValue);
+            },
+            order: [1, 'asc'],
+            bLengthChange: false,
+            responsive: true
+        });
+
+        $('#plots tbody').on('click', 'tr', function () {
+            var plotID = table.row(this).data().PlotID;
+            var link = '@Url.Action("LoadChecklist", "Checklist", new { PlotID = "parameter_id", SiteID = Model.SiteID, RoleEnumValue = Model.RoleEnumValue@*, SiteEmail = Model.SiteEmail, WorkerEmail = Model.WorkerEmail*@ })';
+            link = link.replace("parameter_id", plotID);
+            link = link.replace(/&amp;/g, '&');
+            window.location.href = link;
+        });
+    });
+</script>

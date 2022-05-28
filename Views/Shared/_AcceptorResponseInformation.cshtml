@@ -1,0 +1,64 @@
+﻿@using BQC.Enums
+@using EnumsNET
+@model BQC.Models.Checklist.QuestionResponseInfoViewModel
+
+@{
+    var mostRecentAttemptIndexValue = Model.QuestionAndResponseInfo.ChecklistIndexValues.MostRecentAttemptIndexValue;
+    bool showAcceptorInfo = true;
+
+    bool rejectedByStaffInTradeChecklist = (Model.ChecklistPageOriginEnum == (int)ChecklistPageOrigins.TradeContractorChecklist && Model.QuestionAndResponseInfo.QuestionApproverResponseEnum == (int)ApprovalResponseTypes.Reject);
+    if (Model.QuestionAndResponseInfo.QuestionAcceptorResponseEnum != (int)AcceptorResponseTypes.Accepted || rejectedByStaffInTradeChecklist)
+    {
+        if (Model.ChecklistPageOriginEnum == (int)ChecklistPageOrigins.TradeContractorChecklistApprovalByStaff && Model.QuestionAndResponseInfo.QuestionStatusEnumForTradeContractor == (int)StatusOfQuestionForTradeContractor.AwaitingTradeContractorCompletion)
+        {
+            showAcceptorInfo = false;
+        }
+        if (Model.ChecklistPageOriginEnum == (int)ChecklistPageOrigins.StaffChecklist)
+        {
+            showAcceptorInfo = false;
+        }
+        if (Model.ChecklistPageOriginEnum == (int)ChecklistPageOrigins.TradeContractorChecklist)
+        {
+            showAcceptorInfo = false;
+        }
+    }
+}
+
+@if (Model.QuestionAndResponseInfo.QuestionAttemptCount > 0)
+{
+    @*//for worker approval: make sure that if awaiting response from worker, dont show accepting status of previous attempt*@
+    if (showAcceptorInfo)
+    {
+        <div class="col-12 mt-1 mb-1">
+            <div class="alert alert-green checklist-alert">
+                <i class="fas fa-check pr-2"></i>Accepted by @Model.QuestionAndResponseInfo.QuestionAttemptResponseInfo[mostRecentAttemptIndexValue].AcceptorInfo.Name at @Model.QuestionAndResponseInfo.QuestionAttemptResponseInfo[mostRecentAttemptIndexValue].AcceptorInfo.SignedDateTime
+                @if (Model.QuestionAndResponseInfo.QuestionAttemptResponseInfo[mostRecentAttemptIndexValue].AcceptorInfo.Comment != null)
+                {
+                    <p>With comment <i>"@Model.QuestionAndResponseInfo.QuestionAttemptResponseInfo[mostRecentAttemptIndexValue].AcceptorInfo.Comment"</i></p>
+                }
+
+                @*set as approver file paths not acceptor because it is retrieved from role enum value*@
+                @if (Model.QuestionAndResponseInfo.QuestionAttemptResponseInfo[mostRecentAttemptIndexValue].AcceptorInfo.AcceptorFilePaths != null)
+                {
+                    if (Model.QuestionAndResponseInfo.QuestionAttemptResponseInfo[mostRecentAttemptIndexValue].AcceptorInfo.AcceptorFilePaths.Count() > 0)
+                    {
+                        <button class="btn bg-white mt-3 collapsed" href="#site-images-@Model.QuestionAndResponseInfo.ChecklistQuestionID" data-toggle="collapse">See Images<span><i class="fa-arrow-flip"></i></span></button>
+
+                        <div id="site-images-@Model.QuestionAndResponseInfo.ChecklistQuestionID" class="collapse acceptor-images-container ml-0">
+                            <div class="row w-100 plr-1 m-0">
+                                @foreach (var imagePath in Model.QuestionAndResponseInfo.QuestionAttemptResponseInfo[mostRecentAttemptIndexValue].AcceptorInfo.AcceptorFilePaths)
+                                {
+                                    <div class="col-lg-4 col-md-6 col-12 plr-1">
+                                        <img class="attempt-image" src="@imagePath" data-action="zoom" />
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    }
+}
+
+

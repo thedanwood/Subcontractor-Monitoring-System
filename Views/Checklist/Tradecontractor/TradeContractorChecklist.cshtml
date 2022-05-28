@@ -1,0 +1,185 @@
+﻿@using BQC.Models
+@using BQC.Enums
+@using BQC.ViewModels
+@using BQC.Models.Checklist
+@model BQC.Models.Checklist.ChecklistModel
+
+@{
+    ViewBag.Title = "Checklist Page";
+}
+
+<script>
+    //added at top so that _addcomments.. partial view can access the variables
+    var subsectionId = "@Model.SubSectionModel.SubSectionID";
+    var plotId = "@Model.SiteAndPlotInfo.PlotInfo.PlotID";
+    var saveUrl = "@Url.Action("SaveAcceptorChecklistResponses", "Checklist")";
+</script>
+
+@Html.Partial("~/Views/Shared/_BreadcrumbsAndSitePlotDropdown.cshtml", Model.SiteAndPlotInfo)
+
+<div class="row mt-lg-4 mt-2 mb-lg-4 mb-2">
+    <div class="col-6 d-all-inline">
+        <h2>
+            @Model.SubSectionModel.SectionFullName
+        </h2>
+    </div>
+    <div class="col-6 d-all-inline">
+        <div class="float-right">
+            @{
+                SectionDropdownViewModel sectionDropdownViewModel = new SectionDropdownViewModel()
+                {
+                    SitePlotInfo = Model.SiteAndPlotInfo,
+                    SectionNamingInfo = Model.SectionNaming,
+                };
+                @Html.Partial("~/Views/Shared/_SectionDropdown.cshtml", sectionDropdownViewModel);
+            }
+        </div>
+    </div>
+</div>
+
+
+@if (ViewBag.SectionStatusEnum == (int)StatusOfSections.DependenciesIncomplete)
+{
+    @Html.Partial("~/Views/Shared/_ReadOnlyErrorDiv.cshtml", "The section is not ready to be completed.")
+}
+else
+{
+    <div class="grey-border-container">
+        <div class="form-inline">
+            <label for="#role-name">Status:</label>
+            <input class="form-control ml-3" style="min-width:80%" type="text" disabled="disabled" value="@Model.SubSectionModel.SubSectionStatusString" />
+        </div>
+
+        <div class="card mt-4 checklist-card card-@Model.SubSectionModel.SubSectionID">
+
+            @if (Model.SubSectionModel.isEditable)
+            {
+                <div class="card-header bg-cyan text-white">
+                    Please confirm that all the below checks have been completed to a satisfactory standard
+                </div>
+            }
+            else if (Model.SubSectionModel.SubSectionStatusEnumValue != (int)StatusOfTradeContractorSubSection.SubSectionDependenciesIncompleted)
+            {
+                <div class="card-header bg-cyan text-white">
+                    Checklist questions have been completed as shown below
+                </div>
+            }
+            <div class="card-body checklist-card-body" style="min-height:300px">
+
+                @if (Model.SubSectionModel.SubSectionStatusEnumValue == (int)StatusOfTradeContractorSubSection.SubSectionDependenciesIncompleted)
+                {
+                    <div class="position-relative">
+                        <div class=" readonly-container">
+                            <h5 style="color:white"><i class="fas fa-exclamation-triangle pr-2"></i>The checklist is not ready for completion.</h5>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    @*provide option to acknowledge all*@
+                    if (Model.SubSectionModel.isEditable)
+                    {
+                        @Html.Partial("~/Views/Shared/_AcknowledgeAllChecklistQuestions.cshtml", "Acknowledge")
+                    }
+
+                    foreach (var responseInfo in Model.SubSectionModel.ListQuestionAndResponseInfo)
+                    {
+                        QuestionResponseInfoViewModel questionResponseModel = new QuestionResponseInfoViewModel()
+                        {
+                            ChecklistPageOriginEnum = (int)ChecklistPageOrigins.TradeContractorChecklist,
+                            ChecklistPageOriginTypeEnum = (int)ChecklistPageOriginTypes.AcceptAndApprovalPage,
+                            QuestionAndResponseInfo = responseInfo,
+                        };
+
+                        <div class="entire-container question-border-@responseInfo.QuestionApprovalAlertColor" id="entire-container-@responseInfo.ChecklistQuestionID">
+                            <div class="row">
+                                @Html.Partial("~/Views/Shared/_ChecklistQuestionText.cshtml", questionResponseModel)
+
+                                @Html.Partial("~/Views/Shared/_QuestionAuditTrail.cshtml", questionResponseModel)
+
+                                @Html.Partial("~/Views/Shared/_AcceptorResponseInformation.cshtml", questionResponseModel)
+
+                                @{
+                                    bool notAwaitingContractorResponseOrHasBeenRejected = (responseInfo.QuestionStatusEnumForTradeContractor != (int)StatusOfQuestionForTradeContractor.AwaitingTradeContractorCompletion || responseInfo.QuestionApproverResponseEnum == (int)ApprovalResponseTypes.Reject);
+                                    if (notAwaitingContractorResponseOrHasBeenRejected)
+                                    {
+                                        @Html.Partial("~/Views/Shared/_ApproverResponseInformation.cshtml", questionResponseModel)
+                                    }
+                                }
+
+                                @{
+                                    bool notYetBeenAttemptedOrHasBeenRejected = (responseInfo.ChecklistIndexValues.MostRecentAttemptResponseInfo.AcceptorInfo == null || responseInfo.QuestionApproverResponseEnum == (int)ApprovalResponseTypes.Reject);
+                                    if (notYetBeenAttemptedOrHasBeenRejected)
+                                    {
+                                        ChecklistResponseRadiosViewModel checklistResponseRadiosViewModel = new ChecklistResponseRadiosViewModel()
+                                        {
+                                            ChecklistPageOriginEnum = (int)ChecklistPageOrigins.TradeContractorChecklist,
+                                            QuestionId = responseInfo.ChecklistQuestionID,
+                                            SubSectionId = Model.SubSectionModel.SubSectionID,
+                                        };
+                                        @Html.Partial("~/Views/Shared/_ChecklistResponseRadios.cshtml", checklistResponseRadiosViewModel);
+                                    }
+                                }
+
+                                @if (responseInfo.QuestionStatusEnumForTradeContractor == (int)StatusOfQuestionForTradeContractor.AwaitingTradeContractorCompletion)
+                                {
+                                    AddCommentsOrFilesModel commentModel = new AddCommentsOrFilesModel()
+                                    {
+                                        QuestionID = responseInfo.ChecklistQuestionID,
+                                        SitePlotInfo = Model.SiteAndPlotInfo,
+                                        SubSectionID = Model.SubSectionModel.SubSectionID,
+                                        QuestionAttemptCountForNewFileSave = responseInfo.QuestionAttemptCountForFileSave,
+                                        AcceptorOrApproverEnum = (int)AcceptorOrApprover.acceptor
+                                    };
+                                    @Html.Partial("~/Views/Shared/_AddCommentsOrFilesToChecklistQuestion.cshtml", commentModel);
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @*provide option to acknowledge all*@
+                    if (Model.SubSectionModel.isEditable)
+                    {
+                        @Html.Partial("~/Views/Shared/_AcknowledgeAllChecklistQuestions.cshtml", "Acknowledge")
+                    }
+                }
+            </div>
+        </div>
+
+        @if (Model.SubSectionModel.SubSectionStatusEnumValue != (int)StatusOfTradeContractorSubSection.SubSectionDependenciesIncompleted)
+        {
+            var signModel = new SignaturePadModel()
+            {
+                SignatureImage = Model.SubSectionModel.SignatureImage,
+                SubSectionID = Model.SubSectionModel.SubSectionID,
+                isEditable = Model.SubSectionModel.isEditable,
+                SignedDateTime = Model.SubSectionModel.SignatureDateTime,
+                SignedBy = Model.SubSectionModel.SignatureName,
+                FullName = Model.SubSectionModel.CurrentUserFullName,
+            };
+            @Html.Partial("~/Views/Shared/_SignaturePad.cshtml", signModel)
+
+            @Html.Partial("~/Views/Shared/_ChecklistAlertBoxes.cshtml", ((int)ChecklistPageOrigins.TradeContractorChecklist))
+
+            @Html.Partial("~/Views/Buttons/_SaveButton.cshtml", "save-" + Model.SubSectionModel.SubSectionID)
+        }
+    </div>
+}
+
+@section scripts{
+    <script>
+        $('#section-selection option[id=' + '@Model.SectionID]').attr('selected', 'selected');
+
+        $('.breadcrumb').html(
+            '<li class="breadcrumb-item"> <a href="@Url.Action("ChooseSite","Sites")">Sites</a></li >' +
+                '<li class="breadcrumb-item"><a href="@Url.Action("ChoosePlots","Plots", new { siteId = Model.SiteAndPlotInfo.SiteInfo.EncryptedSiteID})">Plots</a></li >' +
+                '<li class="breadcrumb-item"><a href="@Url.Action("LoadTradeContractorSections", "Checklist", new { @plotId = Model.SiteAndPlotInfo.PlotInfo.EncryptedPlotID })">Sections</a></li >' +
+            '<li class="breadcrumb-item active"><a href="#">Checklist</a></li>'
+        );
+    </script>
+    <script src="~/Scripts/initiate-scroll-to-top-btn.js"></script>
+    <script src="~/Scripts/remove-class-starting-with.js"></script>
+    <script src="~/Scripts/accept-only-radio-change.js"></script>
+    <script src="~/Scripts/saving-checklist-question-responses.js"></script>
+}
+

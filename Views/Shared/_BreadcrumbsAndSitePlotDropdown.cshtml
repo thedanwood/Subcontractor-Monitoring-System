@@ -1,0 +1,112 @@
+﻿@model BQC.Models.Checklist.SiteAndPlotInformationModel
+@using BuildQualityChecklist.Models;
+
+@{       
+    System.Web.IHtmlString encryptedPlotId = null;
+    if (Model.PlotInfo != null)
+    {
+        encryptedPlotId = Html.Raw(Model.PlotInfo.EncryptedPlotID);
+    }
+    var encryptedSiteId = Html.Raw(Model.SiteInfo.EncryptedSiteID);
+}
+
+<style>
+    .site-dropdown-container {
+        display: grid;
+        grid-template-columns: 90px auto;
+    }
+
+    .ploy-dropdown-container {
+        display: grid;
+        grid-template-columns: 110px auto;
+    }
+
+    .site-plot-dropdown-container label {
+        grid-column: 1/2;
+    }
+
+    .site-plot-dropdown-container input {
+        grid-column: 2/3;
+    }
+</style>
+<div class="row mt-3">
+    <div class="col-md-8 col-12 pt-2">
+        <ol class="breadcrumb">
+        </ol>
+    </div>
+    <div class="col-md-4 col-12">
+        <div class="site-plot-info-container m-auto">
+            <div class="float-md-right text-md-right mt-md-0 mt-4">
+                <form class="site-plot-dropdown-container site-dropdown-container form-inline float-md-right">
+                    <label for=".checklist-site-dropdown" class="pr-2">Site Name:</label>
+                    <select class="checklist-site-dropdown form-control">
+                    </select>
+                </form>
+                <form class="site-plot-dropdown-container plot-dropdown-container form-inline float-md-right">
+                    <label for=".checklist-plot-dropdown" class="pr-2">Plot Number:</label>
+                    <select class="checklist-plot-dropdown form-control">
+                    </select>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<hr />
+<script>
+    $(document).ready(function () {
+        $.ajax({
+            url: '@Url.Action("GetSites", "Sites")',
+            //type: 'post',
+            //data: mainObject,
+            beforeSend: function () {
+                $(".loading-container").show();
+            },
+            success: function (result) {
+                for (var i = 0; i < result.data.length; i++) {
+                    $('.checklist-site-dropdown').html();
+                    $('.checklist-site-dropdown').prepend("<option siteid='" + result.data[i].EncryptedSiteID + "'>" + result.data[i].SiteName + "</option>");
+                }
+                $('[siteid="@Model.SiteInfo.EncryptedSiteID"]').attr('selected', 'selected');
+
+                $.ajax({
+                    url: '@Url.Action("GetPlotsFromSiteID", "Plots")',
+                    type: 'get',
+                    data: { siteId: '@encryptedSiteId' },
+                    beforeSend: function() {
+                        $(".loading-container").show();
+                        },
+                    success: function(result) {
+                        $(".loading-container").hide();
+                        for (var i = 0; i < result.data.length; i++)
+                        {
+                            $('.checklist-plot-dropdown').html();
+                            $('.checklist-plot-dropdown').append("<option plotid='" + result.data[i].EncryptedPlotID + "'>" + result.data[i].PlotNumber + "</option>");
+                        }
+                        @if (Model.PlotInfo != null)
+                        {
+                            @:$('[plotid="@encryptedPlotId"]').attr('selected', 'selected');
+                        }
+                    }
+                });
+            }
+        });
+    })
+
+    $('.checklist-site-dropdown').change(function () {
+        var siteId = $('.checklist-site-dropdown option:selected').attr('siteid');
+        var link = "@Url.Action("ChoosePlots", "Plots", new { @siteId = "_SiteID"})";
+        link = link.replace("_SiteID", siteId);
+        link = replaceAmpersands(link);
+        window.location.href = link;
+    })
+
+    $('.checklist-plot-dropdown').change(function () {
+        var plotId = $('.checklist-plot-dropdown option:selected').attr('plotid');
+        var sectionId = $('#section-selection option:selected').attr('id');
+        var link = "@Url.Action("LoadChecklist", "Checklist", new { @plotId = "_PlotId", @sectionId = "_SectionId"})";
+        link = link.replace("_PlotId", plotId);
+        link = link.replace("_SectionId", sectionId);
+        link = replaceAmpersands(link);
+        window.location.href = link;
+    })
+</script>

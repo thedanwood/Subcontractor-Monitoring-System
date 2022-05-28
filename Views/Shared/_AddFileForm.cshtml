@@ -1,0 +1,9 @@
+﻿@model BQC.Models.Checklist.AddFileFormModel
+
+@{var filesAddedCountIncludingThisAddition = Model.QuestionCurrentFilesAddedCount + 1;}
+
+<div class="form-container-@Model.QuestionID">
+    <form action="@Url.Action("UploadFile","Upload", new { PlotID = Model.PlotID, SubSectionID = Model.SubSectionID, QuestionID = Model.QuestionID, QuestionAttemptCountForNewFileSave = Model.QuestionAttemptCountForNewFileSave, AcceptorOrApproverEnum = Model.AcceptorOrApproverEnum })" class="mt-3 mb-3 upload-file-form form-@Model.QuestionID" id="form-@Model.QuestionID-@filesAddedCountIncludingThisAddition" enctype="multipart/form-data" method="post">
+        <div><input id="file-@Model.QuestionID-@filesAddedCountIncludingThisAddition" name="file" type="file" value="" class="d-inline file" accept="image/x-png,image/gif,image/jpeg"><div class='d-inline clickable delete-file' question-id="@Model.QuestionID" unique-id="@filesAddedCountIncludingThisAddition" onclick="deleteFile(this)" id='delete-file-@Model.QuestionID-@filesAddedCountIncludingThisAddition'><i class='fas fa-times'></i></div></div>
+    </form>
+</div>

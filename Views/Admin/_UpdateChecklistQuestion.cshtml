@@ -1,0 +1,55 @@
+﻿@model BuildQualityChecklist.Controllers.AdminController.UpdateQuestionViewModel
+
+<style>
+    .form-control-container input{
+        margin-left:15px;
+        width:Calc(100% - 15px);
+    }
+</style>
+
+<div class="modal fade" tabindex="-1" role="dialog" id="update-question-modal">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title">Update Checklist Question</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="update-question-form">
+                    <div class="form-control-container">
+                        <label for="question-text">
+                            Question Text
+                        </label>
+                        <input id="question-text" class="form-control" value="@Model.QuestionText"/>
+                    </div>
+                </form>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-dark" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-green" id="save-changes">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $('#update-question-modal').modal('show');
+
+    $('#save-change').click(function () {
+        var questionText = $('#question-text').val();
+        $.ajax({
+            type: 'post',
+            data: {
+                Id: '',
+                QuestionText: questionText,
+            },
+            url: ,
+            success: function () {
+                showSuccessAlert('', 'Checklist question has been successfully updated.');
+            }
+        })
+    })
+</script>

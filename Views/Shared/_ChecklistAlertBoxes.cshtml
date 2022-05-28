@@ -1,0 +1,10 @@
+﻿@using BQC.Enums
+@model int
+
+@if (Model == (int)ChecklistPageOrigins.TradeContractorChecklistApprovalByStaff)
+{
+    <div class="alert alert-danger mt-4 alert-hidden" id="checklist-alert-provide-comment" role="alert"></div>
+}
+
+<div class="alert alert-danger mt-4 alert-hidden" id="alert-checklist-completion" role="alert"></div>
+<div class="alert alert-danger mt-4 alert-hidden" id="alert-sign-and-print" role="alert"></div>

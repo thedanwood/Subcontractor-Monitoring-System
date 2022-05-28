@@ -1,0 +1,35 @@
+﻿@using BQC.Enums
+@using EnumsNET
+@model BQC.Models.Checklist.ChecklistResponseRadiosViewModel
+
+@if (Model.ChecklistPageOriginEnum == (int)ChecklistPageOrigins.TradeContractorChecklist || Model.ChecklistPageOriginEnum == (int)ChecklistPageOrigins.StaffChecklist) { 
+    <style>
+        .response-radio-container {
+            display: block;
+        }
+    </style>
+}
+
+<div class="col-12 mt-2 mb-2">
+    @if (Model.ChecklistPageOriginEnum == (int)ChecklistPageOrigins.StaffChecklist || Model.ChecklistPageOriginEnum == (int)ChecklistPageOrigins.TradeContractorChecklist)
+    {
+        <div class="response-radio-container">
+            <input type="radio" question-id="@Model.QuestionId" class="autocheck response-radio check check-@Model.SubSectionId" id="check-@Model.QuestionId" response-enum-value="@((int)AcceptorResponseTypes.Accepted)"><span class="pl-3">Acknowledge</span>
+        </div>
+    }
+    else if (Model.ChecklistPageOriginEnum == (int)ChecklistPageOrigins.TradeContractorChecklistApprovalByStaff)
+    {
+        <div class="form-check-inline">
+            <div class="response-radio-container" question-id="@Model.QuestionId">
+                @*Loop through enums of approval response types but ignore incomplete*@
+                @foreach (int approvalResponseType in Enum.GetValues(typeof(ApprovalResponseTypes)).Cast<ApprovalResponseTypes>().ToList().Where(r => (int)r != (int)ApprovalResponseTypes.Incomplete))
+                {
+                    var responseTypeName = ((ApprovalResponseTypes)approvalResponseType).AsString(EnumFormat.DisplayName);
+                    <div id="response-radio-wrapper">
+                        <input type="radio" class="response-radio @if (approvalResponseType == (int)ApprovalResponseTypes.Approve) {<text>autocheck</text>} " name="radio-@Model.QuestionId" question-id="@Model.QuestionId" response-enum-value="@((int)approvalResponseType)" response-type="@approvalResponseType" value="@responseTypeName"><span class="ml-3 mr-3">@responseTypeName</span>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>

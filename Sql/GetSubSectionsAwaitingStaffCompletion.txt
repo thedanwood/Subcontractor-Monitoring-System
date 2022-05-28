@@ -1,0 +1,67 @@
+CREATE OR ALTER   PROCEDURE [dbo].[GetSubSectionsAwaitingStaffCompletion]
+@SiteID int
+AS
+BEGIN
+
+-- check if there are any responses from trade contractors that have not been approved by staff
+IF OBJECT_ID('tempdb..#tmpStaffApprovalNeeded') IS NOT NULL
+    DROP TABLE #tmpStaffApprovalNeeded
+
+SELECT DISTINCT
+	PlotID
+	,BQCSubSections.BQCSectionID
+INTO #tmpStaffApprovalNeeded
+FROM BQCResponses
+INNER JOIN BQCQuestions ON BQCQuestions.BQCQuestionID = BQCResponses.BQCQuestionID
+INNER JOIN BQCSubSections ON BQCSubSections.BQCSubSectionID = BQCQuestions.BQCSubSectionID
+WHERE BQCResponses.ApproverResponseEnumValue = 0
+
+-- return staff subsection info and related dependent section info
+IF OBJECT_ID('tempdb..#tmpSubSectionsInfo') IS NOT NULL
+    DROP TABLE #tmpSubSectionsInfo
+IF OBJECT_ID('tempdb..#tmpStaffSubSectionIDs') IS NOT NULL
+    DROP TABLE #tmpStaffSubSectionIDs
+IF OBJECT_ID('tempdb..#dependentSectionSignedStaffSectionNotSigned') IS NOT NULL
+    DROP TABLE #dependentSectionSignedStaffSectionNotSigned
+IF OBJECT_ID('tempdb..#tmpQuestionCounts') IS NOT NULL
+    DROP TABLE #tmpQuestionCounts
+
+SELECT DISTINCT
+	BQCSubSections.BQCSectionID AS [StaffSectionID]
+	,BQCSubSections.BQCSubSectionID AS [StaffSubSectionID]
+	--,COUNT([StaffChecklistQuestions].BQCQuestionID) OVER(PARTITION BY BQCSubSections.BQCSubSectionID) AS [StaffChecklistQuestionCount]
+	,BQCSectionDependencies.DependencyTypeEnum
+	,BQCSectionDependencies.DependentOnSectionId AS [DependentSectionID]
+	,MAX([DependentSectionSubSections].BQCSubSectionID) OVER(PARTITION BY [DependentSectionSubSections].BQCSectionID) AS [DependentSubSectionID]
+	--,COUNT([DependentChecklistQuestions].BQCQuestionID) AS [DependentChecklistQuestionCount]
+	INTO #tmpSubSectionsInfo
+FROM BQCSubSections 
+INNER JOIN BQCSectionDependencies ON BQCSectionDependencies.BQCSectionId = BQCSubSections.BQCSectionID
+INNER JOIN BQCSubSections AS [DependentSectionSubSections] ON [DependentSectionSubSections].BQCSectionID = BQCSectionDependencies.DependentOnSectionId
+INNER JOIN BQCQuestions AS [StaffChecklistQuestions] ON [StaffChecklistQuestions].BQCSubSectionID = BQCSubSections.BQCSubSectionID
+INNER JOIN BQCQuestions AS [DependentChecklistQuestions] ON [DependentChecklistQuestions].BQCSubSectionID = [DependentSectionSubSections].BQCSubSectionID
+WHERE 1=1
+AND BQCSubSections.SubSectionTypeEnum = 1 -- staff
+AND [DependentSectionSubSections].SubSectionTypeEnum <> 3
+
+SELECT DISTINCT
+	[DependencySubSectionSignature].PlotID
+	,#tmpSubSectionsInfo.DependentSubSectionID
+	,COUNT([DependentChecklistQuestions].BQCQuestionID) OVER(PARTITION BY [DependencySubSectionSignature].PlotID) AS [DependentChecklistQuestionCount]
+	,#tmpSubSectionsInfo.StaffSubSectionID
+	,COUNT([StaffChecklistQuestions].BQCQuestionID) AS [StaffChecklistQuestionCount]
+INTO #dependentSectionSignedStaffSectionNotSigned
+FROM #tmpSubSectionsInfo
+INNER JOIN  BQCSubSectionSignatures AS [DependencySubSectionSignature] ON [DependencySubSectionSignature].BQCSubSectionID = #tmpSubSectionsInfo.DependentSubSectionID
+INNER JOIN BQCQuestions AS [StaffChecklistQuestions] ON [StaffChecklistQuestions].BQCSubSectionID = #tmpSubSectionsInfo.StaffSubSectionID
+INNER JOIN BQCQuestions AS [DependentChecklistQuestions] ON [DependentChecklistQuestions].BQCSubSectionID = #tmpSubSectionsInfo.DependentSubSectionID
+WHERE NOT EXISTS (SELECT BQCSubSectionSignatures.BQCSubSectionSignatureID FROM BQCSubSectionSignatures WHERE PlotID = DependencySubSectionSignature.PlotID AND BQCSubSectionID = #tmpSubSectionsInfo.StaffSubSectionID)
+GROUP BY 
+[DependencySubSectionSignature].PlotID
+,#tmpSubSectionsInfo.DependentSubSectionID
+,#tmpSubSectionsInfo.StaffSubSectionID
+,[DependentChecklistQuestions].BQCQuestionID
+
+SELECT * FROM #dependentSectionSignedStaffSectionNotSigned
+
+END

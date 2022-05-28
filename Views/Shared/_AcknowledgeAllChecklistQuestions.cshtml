@@ -1,0 +1,17 @@
+﻿@model string
+
+<button id="accept-all" class="btn btn-grey mb-2">@Model all checklist questions</button>
+
+<script src="~/Scripts/remove-class-starting-with.js"></script>
+<script>
+    $('#accept-all').click(function () {
+        $('.autocheck').each(function () {
+            $(this).attr('checked', 'checked');
+            var questionId = $(this).attr('question-id');
+            $('#entire-container-' + questionId).removeClassStartingWith('question-border').addClass('question-border-green');
+        })
+        $('body').animate({
+            scrollTop: $(".signature-pad").offset().top
+        });
+    })
+</script>

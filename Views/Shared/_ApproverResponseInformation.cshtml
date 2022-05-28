@@ -1,0 +1,60 @@
+﻿@using BQC.Enums
+@model BQC.Models.Checklist.QuestionResponseInfoViewModel
+
+@{
+    var mostRecentAttemptIndexValue = Model.QuestionAndResponseInfo.ChecklistIndexValues.MostRecentAttemptIndexValue;
+    var attemptedButNotRespondedTo = (Model.QuestionAndResponseInfo.QuestionApproverResponseEnum == (int)ApprovalResponseTypes.Incomplete && Model.QuestionAndResponseInfo.QuestionAcceptorResponseEnum == (int)AcceptorResponseTypes.Accepted);
+}
+
+<div class="col-12 mt-1 mb-1">
+    @if (Model.ChecklistPageOriginEnum == (int)ChecklistPageOrigins.TradeContractorChecklist && attemptedButNotRespondedTo)
+    {
+        <div class="alert alert-orange checklist-alert">
+            <i class="fas fa-question pr-2"></i>Awaiting response from Site Management
+        </div>
+    }
+    @{ 
+        bool awaitingTradeContractorResponseButNotRejected = (Model.QuestionAndResponseInfo.QuestionStatusEnumForTradeContractor == (int)StatusOfQuestionForTradeContractor.AwaitingTradeContractorCompletion && Model.QuestionAndResponseInfo.QuestionApproverResponseEnum != (int)ApprovalResponseTypes.Reject);
+    }
+    @if (Model.ChecklistPageOriginEnum == (int)ChecklistPageOrigins.TradeContractorChecklistApprovalByStaff && awaitingTradeContractorResponseButNotRejected)
+    {
+        <div class="alert alert-orange checklist-alert">
+            <i class="fas fa-question pr-2"></i>Awaiting response from Trade Contractor
+        </div>
+    }
+    @*else if (Model.ChecklistPageOriginEnum == (int)ChecklistPageOrigins.TradeContractorChecklistApprovalByStaff && Model.QuestionAndResponseInfo.QuestionStatusEnumForTradeContractor == (int)StatusOfQuestionForTradeContractor.AwaitingTradeContractorCompletion)
+    {
+        <div class="alert alert-orange checklist-alert">
+            <i class="fas fa-question pr-2"></i>Awaiting response from Trade Contractor
+        </div>
+    }*@
+    @if (Model.QuestionAndResponseInfo.QuestionApproverResponseEnum != (int)ApprovalResponseTypes.Incomplete)
+    {
+        <div class="alert alert-@Model.QuestionAndResponseInfo.QuestionApprovalAlertColor checklist-alert">
+            <p><i class="fas fa-check pr-2"></i>@Model.QuestionAndResponseInfo.QuestionApproverResponseString by @Model.QuestionAndResponseInfo.QuestionAttemptResponseInfo[mostRecentAttemptIndexValue].ApproverInfo.ApproverName at @Model.QuestionAndResponseInfo.QuestionAttemptResponseInfo[mostRecentAttemptIndexValue].ApproverInfo.SignedDateTime</p>
+            @if (Model.QuestionAndResponseInfo.QuestionAttemptResponseInfo[mostRecentAttemptIndexValue].ApproverInfo.Comment != null)
+            {
+                @:<p>With comment "@Model.QuestionAndResponseInfo.QuestionAttemptResponseInfo[mostRecentAttemptIndexValue].ApproverInfo.Comment"</p>
+            }
+            @if (Model.QuestionAndResponseInfo.QuestionAttemptResponseInfo[mostRecentAttemptIndexValue].ApproverInfo.ApproverFilePaths != null)
+            {
+                if (Model.QuestionAndResponseInfo.QuestionAttemptResponseInfo[mostRecentAttemptIndexValue].ApproverInfo.ApproverFilePaths.Count() > 0)
+                {
+                    <button class="btn bg-white c collapsed mt-2" href="#site-images-@Model.QuestionAndResponseInfo.ChecklistQuestionID" data-toggle="collapse">See Images<span><i class="fa-arrow-flip"></i></span></button>
+                    <div id="site-images-@Model.QuestionAndResponseInfo.ChecklistQuestionID" class="collapse acceptor-images-container ml-0">
+                        <div class="row w-100 plr-1 m-0">
+                            @foreach (var imagePath in Model.QuestionAndResponseInfo.QuestionAttemptResponseInfo[mostRecentAttemptIndexValue].ApproverInfo.ApproverFilePaths)
+                            {
+                                <div class="col-lg-4 col-md-6 col-12 plr-1">
+                                    <img class="attempt-image" src="@imagePath" data-action="zoom" />
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    }
+</div>
+
+

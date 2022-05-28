@@ -1,0 +1,105 @@
+﻿@model BQC.Models.Checklist.SignaturePadModel
+
+<style>
+    .signature-image {
+        width: 75%;
+        height: auto;
+        object-fit: cover;
+        border: 1px solid var(--grey);
+    }
+    .signature-pad {
+        border: 1px solid black;
+        width: 100%;
+        border-bottom: 2px solid black;
+    }
+</style>
+
+@if (Model.isEditable)
+{
+    <div class="card-header bg-cyan text-white mb-3">
+        Please sign and name below
+    </div>
+    <div class="signature" id="signature-@Model.SubSectionID">
+        <div class="row">
+            <div class="col-9">
+                <input class="form-control sign-name" id="print-name-@Model.SubSectionID" name="print-name" placeholder="Print Name" style="display:inline-block" type="text" value="@Model.FullName">
+            </div>
+            <div class="col-3">
+                <button class="btn btn-outline-grey float-right mr-2" id="clear-signature-@Model.SubSectionID">Clear</button>
+            </div>
+        </div>
+        <div class="wrapper mt-3">
+            <canvas id="signature-pad-@Model.SubSectionID" class="signature-pad" height="400"></canvas>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card-header bg-cyan text-white mb-3">
+        Signature information has been provided as shown below
+    </div>
+
+    <div class="indented-inputs">
+        <label for="signed-by-@Model.SubSectionID">Signed By: </label>
+        <input type="text" class="form-control" disabled="disabled" value="@Model.SignedBy" />
+        
+        @if (Model.SignatureImage != null)
+        {
+            <div class="ml-2">
+                <button class="btn btn-blue mt-2 collapsed" type="button" data-toggle="collapse" data-target="#showSignatureCollapse" aria-expanded="false" aria-controls="showSignatureCollapse">Show Signature <span><i class="fa-arrow-flip"></i></span></button>
+                <div id="showSignatureCollapse" class="collapse">
+                    <img class="signature-image" src=data:image/png;base64,@Convert.ToBase64String(Model.SignatureImage) />
+                </div>
+            </div>
+        }
+
+        <label for="signed-by-@Model.SubSectionID">At Date-Time:</label>
+        <input type="text" class="form-control" disabled="disabled" value="@Model.SignedDateTime" />
+    </div>
+
+}
+
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@2.3.2/dist/signature_pad.min.js"></script>
+<script>
+    //initiate the signature
+    @if (Model.isEditable)
+    {
+        <text>
+            var signaturePad;
+            if ($("#signature-pad-@Model.SubSectionID").length) {
+                signaturePad = new SignaturePad($("#signature-pad-@Model.SubSectionID").get(0), {
+                    backgroundColor: 'rgb(255, 255, 255, 0)',
+                });
+            }
+            //resize
+            var canvas = document.querySelector('#signature-pad-@Model.SubSectionID');
+
+            function resizeCanvas() {
+                var ratio = Math.max(window.devicePixelRatio || 1, 1);
+                canvas.width = canvas.offsetWidth * ratio;
+                canvas.height = canvas.offsetHeight * ratio;
+                canvas.getContext("2d").scale(ratio, ratio);
+            }
+            window.addEventListener("resize", resizeCanvas);
+            resizeCanvas();
+
+            //clear sig
+            $('#clear-signature-@Model.SubSectionID').click(function () {
+                signaturePad.clear();
+            });
+
+            //check the signature
+            function isSignatureProvided() {
+                //sign and name validation
+                var signValid = false;
+                if ($('#print-name-@Model.SubSectionID').val() != '' && !signaturePad.isEmpty()) {
+                    signValid = true;
+                } else {
+                    showWarningAlert('#alert-sign-and-print', 'Please sign and print your name');
+                }
+                return signValid;
+            }
+        </text>
+    }
+
+</script>

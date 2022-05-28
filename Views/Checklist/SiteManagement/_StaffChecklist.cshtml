@@ -1,0 +1,131 @@
+﻿@using BQC.Models;
+@using BQC.Enums;
+@using BQC.Models.Checklist;
+@model BQC.Models.Checklist.ChecklistModel
+
+
+<script>
+    var subsectionId = '@Model.SubSectionModel.SubSectionID';
+    var plotId = '@Model.SiteAndPlotInfo.PlotInfo.PlotID';
+    var saveUrl = '@Url.Action("SaveAcceptorChecklistResponses", "Checklist")';
+</script>
+
+<div class="grey-border-container border-top-left-none">
+
+    @if (Model.SubSectionModel.SubSectionStatusEnumValue == (int)StatusOfStaffSubSection.SubSectionDependenciesIncompleted)
+    {
+        @Html.Partial("~/Views/Shared/_ReadOnlyErrorDiv.cshtml", "The previous section must be completed and approved before this section can be completed.")
+    }
+    else
+    {
+        <div class="form-inline">
+            <label for="#role-name">Status :</label>
+            <input class="form-control ml-3 bg-light-grey" style="min-width: 80%" type="text" disabled="disabled" value="@Model.SubSectionModel.SubSectionStatusString" />
+        </div>
+
+        <div class="card checklist-card">
+            <div class="card-header bg-cyan text-white mt-3">
+                @if (!Model.SubSectionModel.isComplete)
+                {
+                    @:Please confirm that all the below checks have been completed to a satisfactory standard
+                }
+                else
+                {
+                    @:All checklist questions have been completed as shown below
+                }
+
+            </div>
+            <div class="card-body checklist-card-body">
+
+                @*provide option to acknowledge all*@
+                @if (!Model.SubSectionModel.isComplete)
+                {
+                    @Html.Partial("~/Views/Shared/_AcknowledgeAllChecklistQuestions.cshtml", "Acknowledge")
+                }
+
+                @*loop through each questions information*@
+                @foreach (var responseInfo in Model.SubSectionModel.ListQuestionAndResponseInfo)
+                {
+                    QuestionResponseInfoViewModel questionResponseModel = new QuestionResponseInfoViewModel()
+                    {
+                        //ChecklistPageEnumValue = (int)ChecklistPages.Staff,
+                        ChecklistPageOriginTypeEnum = (int)ChecklistPageOriginTypes.AcceptPageOnly,
+                        ChecklistPageOriginEnum = (int)ChecklistPageOrigins.StaffChecklist,
+                        QuestionAndResponseInfo = responseInfo,
+                    };
+
+                    <div class="entire-container question-border-@responseInfo.QuestionAcceptorAlertColor" id="entire-container-@responseInfo.ChecklistQuestionID">
+                        <div class="row">
+                            @Html.Partial("~/Views/Shared/_ChecklistQuestionText.cshtml", questionResponseModel)
+
+                            @if (responseInfo.QuestionAttemptResponseInfo.Count() > 0)
+                            {
+                                @Html.Partial("~/Views/Shared/_QuestionAuditTrail.cshtml", questionResponseModel)
+                            }
+
+                            @if (responseInfo.ChecklistIndexValues.MostRecentAttemptResponseInfo.AcceptorInfo == null)
+                            {
+                                ChecklistResponseRadiosViewModel checklistResponseRadiosViewModel = new ChecklistResponseRadiosViewModel()
+                                {
+                                    ChecklistPageOriginEnum = (int)ChecklistPageOrigins.StaffChecklist,
+                                    QuestionId = responseInfo.ChecklistQuestionID,
+                                    SubSectionId = Model.SubSectionModel.SubSectionID,
+                                };
+                                @Html.Partial("~/Views/Shared/_ChecklistResponseRadios.cshtml", checklistResponseRadiosViewModel);
+                            }
+
+                            @if (responseInfo.QuestionAcceptorResponseEnum == (int)AcceptorResponseTypes.Incomplete)
+                            {
+                                var commentModel = new AddCommentsOrFilesModel()
+                                {
+                                    QuestionID = responseInfo.ChecklistQuestionID,
+                                    SitePlotInfo = Model.SiteAndPlotInfo,
+                                    SubSectionID = Model.SubSectionModel.SubSectionID,
+                                    QuestionAttemptCountForNewFileSave = responseInfo.QuestionAttemptCountForFileSave,
+                                    AcceptorOrApproverEnum = (int)AcceptorOrApprover.acceptor
+                                };
+                                @Html.Partial("~/Views/Shared/_AddCommentsOrFilesToChecklistQuestion.cshtml", commentModel);
+                            }
+                            else
+                            {
+                                @Html.Partial("~/Views/Shared/_AcceptorResponseInformation.cshtml", questionResponseModel)
+                            }
+
+                        </div>
+                    </div>
+                }
+
+                @*provide option to acknowledge all*@
+                @if (!Model.SubSectionModel.isComplete)
+                {
+                    @Html.Partial("~/Views/Shared/_AcknowledgeAllChecklistQuestions.cshtml", "Acknowledge");
+                }
+
+            </div>
+        </div>
+        @*signature pad*@
+
+        var signModel = new SignaturePadModel()
+        {
+            SignatureImage = Model.SubSectionModel.SignatureImage,
+            SubSectionID = Model.SubSectionModel.SubSectionID,
+            isEditable = Model.SubSectionModel.isEditable,
+            SignedDateTime = Model.SubSectionModel.SignatureDateTime,
+            SignedBy = Model.SubSectionModel.SignatureName,
+            FullName = Model.SubSectionModel.CurrentUserFullName,
+        };
+        @Html.Partial("~/Views/Shared/_SignaturePad.cshtml", signModel);
+
+        @Html.Partial("~/Views/Shared/_ChecklistAlertBoxes.cshtml", ((int)ChecklistPageOrigins.StaffChecklist))
+
+        if (Model.SubSectionModel.isEditable)
+        {
+            @Html.Partial("~/Views/Buttons/_SaveButton.cshtml", "save-" + Model.SubSectionModel.SubSectionID);
+        }
+    }
+
+</div>
+
+<script src="~/Scripts/saving-checklist-question-responses.js"></script>
+<script src="~/Scripts/remove-class-starting-with.js"></script>
+<script src="~/Scripts/accept-only-radio-change.js"></script>

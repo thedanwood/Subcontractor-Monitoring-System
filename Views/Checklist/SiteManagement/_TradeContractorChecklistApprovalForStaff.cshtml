@@ -1,0 +1,193 @@
+﻿@using BQC.Models.Checklist
+@using BQC.Enums
+@using EnumsNET;
+@model BQC.Models.Checklist.ChecklistModel
+
+<script>
+    var subsectionId = '@Model.SubSectionModel.SubSectionID';
+    var plotId = '@Model.SiteAndPlotInfo.PlotInfo.PlotID';
+    var saveUrl = '@Url.Action("SaveApproverChecklistResponses", "Checklist")';
+</script>
+
+@if (Model.SubSectionModel.SubSectionStatusEnumValue == (int)StatusOfTradeContractorSubSection.SubSectionDependenciesIncompleted)
+{
+    <div class="grey-border-container card-@Model.PaymentAuthModel.SubSectionID" style="min-height:300px">
+        <div class="position-relative">
+            <div class=" readonly-container">
+                <h5 style="color:white"><i class="fas fa-exclamation-triangle pr-2"></i>The relevant prior sub sections must be completed and approved before the payment can be authorised.</h5>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="grey-border-container">
+
+        @if (Model.SubSectionModel.SubSectionStatusEnumValue == (int)StatusOfTradeContractorSubSection.SubSectionDependenciesIncompleted ||
+            Model.SubSectionModel.SubSectionStatusEnumValue == (int)StatusOfTradeContractorSubSection.AmendmentByTradeContractorNeeded ||
+            Model.SubSectionModel.SubSectionStatusEnumValue == (int)StatusOfTradeContractorSubSection.IncompleteByTradeContractor)
+        {
+            <button class="btn btn-lg btn-success" onclick="autofillSubbieData()">Autofill as a Trade Contractor</button>
+            <hr />
+
+            <script>
+                function autofillSubbieData() {
+                    $.ajax({
+                        url: '@Url.Action("AutoCompleteAcceptorChecklist", "Checklist")',
+                        type: 'post',
+                        data: {
+                            PlotID: '@Model.SiteAndPlotInfo.PlotInfo.PlotID',
+                            SubSectionID: '@Model.SubSectionModel.SubSectionID',
+                        },
+                        beforeSend: function () {
+                            $('#loader').show();
+                        },
+                        success: function (result) {
+                            $(window).scrollTop(0);
+                            window.location.reload();
+                        }
+                    });
+                }
+            </script>
+        }
+
+        <div class="form-inline">
+            <label for="#role-name">Status :</label>
+            <input class="form-control ml-3 bg-light-grey" style="min-width:80%" type="text" disabled="disabled" value="@Model.SubSectionModel.SubSectionStatusString" />
+        </div>
+
+        <div class="card checklist-card card-@Model.SubSectionModel.SubSectionID">
+
+            @if (Model.SubSectionModel.isEditable)
+            {
+                <div class="card-header bg-cyan text-white mt-3">
+                    <div><p class="d-inline">Please confirm that all the below checklist questions have been completed to a satisfactory standard</p><i id="checklist-info" class="fas fa-question-circle d-inline pl-3 text-white" arrow="true" data-toggle="tooltip" data-placement="bottom" title="You can mark the checklist questions as approved, conditional, or rejected. You can view a history of all previous attempts by single clicking/tapping on the 'show full audit trail' button. You can also attach files and comment by single clicking/tapping on the 'add information' button. To apply any changes, you must single click/tap on the 'save' button."></i></div>
+                </div>
+            }
+            else
+            {
+                <div class="card-header bg-cyan text-white mt-3">
+                    <div><p class="d-inline">Checklist questions have been completed as shown below</p><i class="fas fa-question-circle d-inline pl-3 text-white" data-toggle="tooltip" data-placement="bottom" title="All information relating to checklist question attempts is shown below."></i></div>
+                </div>
+            }
+
+            <div class="card-body checklist-card-body">
+
+                @*provide option to acknowledge all*@
+                @if (Model.SubSectionModel.isEditable)
+                {
+                    @Html.Partial("~/Views/Shared/_AcknowledgeAllChecklistQuestions.cshtml", "Approve")
+                }
+
+                @foreach (var responseInfo in Model.SubSectionModel.ListQuestionAndResponseInfo)
+                {
+                    QuestionResponseInfoViewModel questionResponseModel = new QuestionResponseInfoViewModel()
+                    {
+                        ChecklistPageOriginEnum = (int)ChecklistPageOrigins.TradeContractorChecklistApprovalByStaff,
+                        ChecklistPageOriginTypeEnum = (int)ChecklistPageOriginTypes.AcceptAndApprovalPage,
+                        QuestionAndResponseInfo = responseInfo,
+                    };
+
+                    <div class="entire-container question-border-@responseInfo.QuestionApprovalAlertColor" id="entire-container-@responseInfo.ChecklistQuestionID">
+                        <div class="row">
+
+                            @Html.Partial("~/Views/Shared/_ChecklistQuestionText.cshtml", questionResponseModel)
+
+                            @Html.Partial("~/Views/Shared/_QuestionAuditTrail.cshtml", questionResponseModel)
+
+                            <span class="error d-none mb-3 ml-3 text-danger" id="error-@responseInfo.ChecklistQuestionID"></span>
+
+                            @if (responseInfo.QuestionAttemptCount > 0)
+                            {
+                                @Html.Partial("~/Views/Shared/_AcceptorResponseInformation.cshtml", questionResponseModel)
+                            }
+
+                            @if (responseInfo.QuestionStatusEnumForTradeContractor != (int)StatusOfQuestionForTradeContractor.AwaitingStaffResponse)
+                            {
+                                @Html.Partial("~/Views/Shared/_ApproverResponseInformation.cshtml", questionResponseModel)
+                            }
+
+                            @if (responseInfo.QuestionStatusEnumForTradeContractor == (int)StatusOfQuestionForTradeContractor.AwaitingStaffResponse)
+                            {
+                                ChecklistResponseRadiosViewModel checklistResponseRadiosViewModel = new ChecklistResponseRadiosViewModel()
+                                {
+                                    ChecklistPageOriginEnum = (int)ChecklistPageOrigins.TradeContractorChecklistApprovalByStaff,
+                                    QuestionId = responseInfo.ChecklistQuestionID,
+                                    SubSectionId = Model.SubSectionModel.SubSectionID,
+                                };
+                                @Html.Partial("~/Views/Shared/_ChecklistResponseRadios.cshtml", checklistResponseRadiosViewModel);
+
+                                var commentModel = new AddCommentsOrFilesModel()
+                                {
+                                    QuestionID = responseInfo.ChecklistQuestionID,
+                                    SitePlotInfo = Model.SiteAndPlotInfo,
+                                    SubSectionID = Model.SubSectionModel.SubSectionID,
+                                    QuestionAttemptCountForNewFileSave = responseInfo.QuestionAttemptCountForFileSave,
+                                    AcceptorOrApproverEnum = (int)AcceptorOrApprover.approver
+                                };
+                                @Html.Partial("~/Views/Shared/_AddCommentsOrFilesToChecklistQuestion.cshtml", commentModel);
+                            }
+                        </div>
+                    </div>
+                }
+
+                @*signature pad*@
+                @if (Model.SubSectionModel.SubSectionStatusEnumValue != (int)StatusOfTradeContractorSubSection.AmendmentByTradeContractorNeeded && Model.SubSectionModel.SubSectionStatusEnumValue != (int)StatusOfTradeContractorSubSection.IncompleteByTradeContractor)
+                {
+                    var signModel = new SignaturePadModel()
+                    {
+                        SignatureImage = Model.SubSectionModel.SignatureImage,
+                        SubSectionID = Model.SubSectionModel.SubSectionID,
+                        isEditable = Model.SubSectionModel.isEditable,
+                        SignedDateTime = Model.SubSectionModel.SignatureDateTime,
+                        SignedBy = Model.SubSectionModel.SignatureName,
+                        FullName = Model.SubSectionModel.CurrentUserFullName,
+                    };
+                    @Html.Partial("~/Views/Shared/_SignaturePad.cshtml", signModel);
+                }
+            </div>
+
+            @Html.Partial("~/Views/Shared/_ChecklistAlertBoxes.cshtml", ((int)ChecklistPageOrigins.TradeContractorChecklistApprovalByStaff))
+
+        </div>
+        @if (Model.SubSectionModel.isEditable)
+        {
+            @Html.Partial("~/Views/Buttons/_SaveButton.cshtml", "save-" + Model.SubSectionModel.SubSectionID)
+        }
+    </div>
+}
+
+<script id="saving-checklist-question-responses-script" src="~/Scripts/saving-checklist-question-responses.js"></script>
+<script src="~/Scripts/remove-class-starting-with.js"></script>
+<script src="~/Scripts/tippy.js"></script>
+<script>
+    //initialate tooltips using tippy js plugin
+    tippy('#checklist-info',{});
+
+    $("input[type='radio']").change(function () {
+        var questionid = $(this).attr('question-id');
+        var responseType = $(this).attr('response-type');
+        var containerSelector = '#entire-container-' + questionid;
+        var collapseSelector = '#collapse-' + questionid;
+        var commentProvidedSelector = '#textarea-' + questionid;
+        $(containerSelector).removeClassStartingWith('question-border-');
+
+        if (responseType == @((int)ApprovalResponseTypes.Reject) || responseType == @((int)ApprovalResponseTypes.SubjectToConditions)) {
+            $(commentProvidedSelector).attr('required', 'required');
+            $(collapseSelector).collapse("show");
+        }
+        if (responseType == @((int)ApprovalResponseTypes.Reject)) {
+            $(containerSelector).addClass('question-border-red');
+            showWarningAlert('#alert-' + questionid, 'Please provide comments outlining any major defects with the works')
+        }
+        else if (responseType == @((int)ApprovalResponseTypes.SubjectToConditions)) {
+            $(containerSelector).addClass('question-border-orange');
+            showWarningAlert('#alert-' + questionid, 'Please provide comments outlining any conditionals with the works')
+        }
+        else {
+            $(commentProvidedSelector).removeAttr('required');
+            $(collapseSelector).collapse("hide");
+            $(containerSelector).addClass('question-border-green');
+        }
+    });
+</script>

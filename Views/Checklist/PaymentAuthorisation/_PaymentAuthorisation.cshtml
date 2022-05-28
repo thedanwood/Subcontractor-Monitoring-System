@@ -1,0 +1,128 @@
+﻿@model BQC.Models.Checklist.ChecklistModel
+@using BQC.Models.Checklist
+@using BQC.Models
+<style>
+    .signature-pad {
+        width: 99%;
+    }
+
+    #clearSig {
+        height: 50px;
+        width: 100px;
+    }
+
+    #print-name {
+        height: 50px;
+        min-width: 50%;
+    }
+</style>
+
+@if (Model.PaymentAuthModel.completionIsDisabled)
+{
+    @Html.Partial("~/Views/Shared/_ReadOnlyErrorDiv.cshtml", "The trade contractor checklist must be completed and approved before the payment can be authorised.")
+}
+else
+{
+    <div class="grey-border-container card-@Model.PaymentAuthModel.SubSectionID p-3">
+
+        @{
+            var signModel = new SignaturePadModel()
+            {
+                SignatureImage = Model.PaymentAuthModel.SignatureImage,
+                FullName = Model.PaymentAuthModel.FullName,
+                SubSectionID = Model.PaymentAuthModel.SubSectionID,
+                isEditable = Model.PaymentAuthModel.isEditable,
+                SignedBy = Model.PaymentAuthModel.SignatureName,
+                SignedDateTime = Model.PaymentAuthModel.SignedDateTime,
+            };
+            @Html.Partial("~/Views/Shared/_SignaturePad.cshtml", signModel);
+        }
+
+        @if (Model.PaymentAuthModel.isEditable)
+        {
+            <div>
+                @Html.Partial("~/Views/Buttons/_SaveButton.cshtml", "save-" + Model.PaymentAuthModel.SubSectionID)
+            </div>
+        }
+    </div>
+}
+
+
+
+
+<script>
+    @if (Model.PaymentAuthModel.isComplete) {
+        @:$('#print-name-@Model.PaymentAuthModel.SubSectionID').val('@Model.PaymentAuthModel.SignatureName');
+    }
+
+    //var signaturePad3;
+    //if ($("#signature-pad-" + subsection).length) {
+    //    signaturePad3 = new SignaturePad($("#signature-pad-" + subsection).get(0), {
+    //        backgroundColor: 'rgb(255, 255, 255, 0)' // necessary for saving image as JPEG; can be removed if only saving as PNG or SVG
+    //    });
+    //}
+
+    //var canvas = $('#signature-pad-' + subsection);
+    //resizeCanvas(canvas.get(0), true);
+
+    //$('#clearSig-' + subsection).click(function(){
+    //    signaturePad3.clear();
+    //});
+
+    //$(".signature-pad").each(function () {
+    //    var canvas = $(this);
+    //    resizeCanvas(canvas.get(0), true);
+    //});
+
+    ////check the signature
+    //function isSignatureProvided() {
+    //    //sign and name validation
+    //    var signValid = false;
+    //    if ($('#print-name-' + subsection).val() != '' && !signaturePad3.isEmpty()) {
+    //        signValid = true;
+    //        $('#alert-sign').fadeOut('500');
+    //    } else {
+    //        $('#alert-sign').fadeIn('500');
+    //    }
+    //    return signValid;
+    //}
+
+    $('#save-@Model.PaymentAuthModel.SubSectionID').click(function () {
+
+        var signatureCompleted = isSignatureProvided();
+
+        if (signatureCompleted) {
+
+            //prepare object
+            var mainObject = [];
+
+            //signature data
+            var sigdata = signaturePad.toDataURL();
+            sigdata = sigdata.substring(sigdata.indexOf(',') + 1);
+            var printName = $('#print-name-@Model.PaymentAuthModel.SubSectionID').val();
+
+            mainObject = {
+                PrintName: printName,
+                Signature: sigdata,
+                @*UserID: '@Model.UserID',*@
+                PlotID: '@Model.SiteAndPlotInfo.PlotInfo.PlotID',
+                SubSectionID: '@Model.PaymentAuthModel.SubSectionID',
+            }
+
+            //save
+            $.ajax({
+                url: '@Url.Action("SavePaymentAuthorisation", "Checklist")',
+                type: 'post',
+                data: mainObject,
+                beforeSend: function () {
+                    $('#loader').show();
+                },
+                success: function (result) {
+                    window.location.reload();
+                    //$('btn-tab')
+                }
+            });
+        }
+    })
+
+</script>
